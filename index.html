@@ -4,6 +4,8 @@
   <head>
       <title>ESP32-CAM LIVE</title>
       <meta charset="utf-8" />
+      <link rel="manifest" href="/manifest.json">
+      <meta name="theme-color" content="#ffffff">
       <style>
         html, body {overscroll-behavior-y: none; touch-action: pan-x pan-y; font-size: 14px;}
         input[type="range"] { appearance: none; background: transparent;}
@@ -46,7 +48,18 @@
         
       
   </body>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        console.log("load");
+        navigator.serviceWorker.register('/sw.js')
+          .then(reg => console.log('PWA готово:', reg.scope))
+          .catch(err => console.error('Ошибка PWA:', err));
+      });
+    }
+  </script>
   <script type="module">
+    
     const img = document.getElementById("stream");
     const serverStatus = document.getElementById("status");
     const leftdrive = document.getElementById("left");
@@ -145,7 +158,8 @@
         driveStatusChanged = true;
     };
 
-    const ws = new WebSocket(`ws://${window.location.host}`);
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${protocol}//${window.location.host}`);
     ws.onopen = () => {
         serverStatus.innerText = " В мережі (очікування кадрів)";
         wsOnline = true;

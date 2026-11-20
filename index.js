@@ -9,13 +9,21 @@ let tankID = null;
 let interval = null;
 
 const server = http.createServer((req, res) => {
+    const mimeTypes = {
+        '.html': 'text/html',
+        '.js': 'application/javascript',
+        '.json': 'application/json',
+        '.css': 'text/css',
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg'
+    };
     if(req.url === '/') {
         fs.readFile(path.join(__dirname, 'index.html'), (err, data) => {
             res.writeHead(200, {'Content-Type': 'text/html'});
             res.end(data);
         });
     }
-    if(req.url === '/reset') {
+    else if (req.url === '/reset') {
         console.log("reset");
         wss.clients.forEach(client => {
             if (client.id === clientID ) {
@@ -23,6 +31,13 @@ const server = http.createServer((req, res) => {
             }
         })
         res.end("ok");
+    }
+    else {
+        fs.readFile(path.join(__dirname, req.url), (err, data) => {
+            const ext = path.extname(req.url);
+            res.writeHead(200, {'Content-Type': mimeTypes[ext]});
+            res.end(data);
+        });
     }
 });
 // 
