@@ -1,0 +1,22 @@
+{
+  "name": "tank-server",
+  "version": "1.0.0",
+  "description": "server for my toy tank (I'm a big child :-))",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js",
+    "dev": "nodemon --inspect index.js"
+  },
+  "author": "Andrii Kidanov",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "ip-address": "^10.0.1",
+    "nodemon": "^3.1.10"
+  }
+}

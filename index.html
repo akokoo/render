@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<html>
+  <head>
+      <title>ESP32-CAM LIVE</title>
+      <meta charset="utf-8" />
+      <style>
+        html, body {overscroll-behavior-y: none; touch-action: pan-x pan-y; font-size: 14px;}
+        input[type="range"] { appearance: none; background: transparent;}
+        input[type="range"]:focus {outline: none;}
+        input[type="range"]::-webkit-slider-runnable-track { height: 50px; background: #ddd; border-radius: 25px;}
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; height: 70px; width: 70px; border-radius: 50%; background: #007bff; cursor: pointer; margin-top: -10px;}
+        body {text-align: center; background: #181515; color: white; margin: 0;}
+        img {border: 2px solid #555;} 
+        #overlay{position: absolute; top: 0; z-index: 9999; height: 100vh; width: 100%; background-color: rgb(196, 245, 245);}
+        .hide {display: none;}
+      </style>
+  </head>
+  <body>
+      <div style="resize: none;">
+        <div class="main" style="z-index: 1;">
+          <div style="display: flex; flex-direction: row; justify-content: space-between; height: 100vh">
+            <div style="display: flex; justify-content: center; align-items: center; width: 15%;">
+              <div>
+                <input id="left" type="range" min="0" max="2" value="1" step="1" style=" transform: rotate(-90deg); width: 200px;"/>
+              </div>
+            </div>
+            <div style="margin: auto;">
+              <img id="stream" src="" alt="Очікування потоку....">
+            </div>
+            <div style="display: flex; justify-content: center; align-items: center;  width: 15%;">
+              <div>
+                <input id="right" type="range" min="0" max="2" value="1" step="1" style="transform: rotate(-90deg); width: 200px;"/>
+              </div>
+            </div>
+          </div>
+          <div id="status" style="width: 100%; text-align: center; bottom: 20px; position: absolute;">Підключення до сервера....</div>
+          <div id="vehicle"style="width: 100%; text-align: center; bottom: 5px; position: absolute;">Vehicle offline</div>
+        </div>
+        <div id="overlay" class="hide"> 
+          <div style="display: flex; justify-content: center; align-items: center; height: 100%; color: grey; font-size: 2.5em;">
+            Rotate your device
+          </div>
+        </div>
+      </div>
+        
+      
+  </body>
+  <script type="module">
+    const img = document.getElementById("stream");
+    const serverStatus = document.getElementById("status");
+    const leftdrive = document.getElementById("left");
+    const rightdrive = document.getElementById("right");
+    const overlay = document.getElementById("overlay");
+    const vehicleStatus = document.getElementById("vehicle")
+    let screenWidth;
+    let screenHeight;
+    let driveStatus = {
+        left: "1",
+        right: "1"
+    };
+    let driveStatusChanged = false;
+    let sendingInterval = 300;
+    let wsOnline = false;
+    let interval;
+    window.addEventListener("DOMContentLoaded", e => {
+      screenWidth = window.innerWidth;
+      screenHeight = window.innerHeight;
+      if (screenHeight>screenWidth) {
+        overlay.classList.remove("hide");
+      }
+
+    });
+    document.addEventListener("visibilitychange", e => {
+        if (document.visibilityState === 'visible') {
+        console.log('Вкладка в фокусе, восстанавливаем WS...');
+        window.location.reload(true);   
+        } else {
+          ws.close(1000);
+        }
+    
+    });
+    window.addEventListener("resize", function () {
+      screenWidth = window.innerWidth;
+      screenHeight = window.innerHeight;
+      if (screenHeight>screenWidth) {
+        overlay.classList.remove("hide");
+      } else {
+        overlay.classList.add("hide");
+      }
+    });
+
+    leftdrive.addEventListener("change", function(e) {
+      this.value = "1";
+      writeStatus(this, e.target.value);
+    });
+    leftdrive.addEventListener("input", function(e) {
+      writeStatus(this, e.target.value);
+    });
+    rightdrive.addEventListener("change", function(e) {
+      this.value = "1";
+      writeStatus(this, e.target.value);
+    });
+    rightdrive.addEventListener("input", function(e) {
+      writeStatus(this, e.target.value);
+    });
+    window.addEventListener("keydown", e => {
+      if(e.code === "KeyQ" && driveStatus.left != "2") {
+        writeStatus(leftdrive, "2");
+        leftdrive.value = "2";
+      }
+      if(e.code === "KeyA" && driveStatus.left != "0") {
+        writeStatus(leftdrive, "0");
+        leftdrive.value = "0";
+      }
+      if(e.code === "KeyE" && driveStatus.right != "2") {
+        writeStatus(rightdrive, "2");
+        rightdrive.value = "2";
+      }
+      if(e.code === "KeyD" && driveStatus.right != "0") {
+        writeStatus(rightdrive, "0");
+        rightdrive.value = "0";
+      }
+    });
+    window.addEventListener("keyup", e => {
+      if(e.code === "KeyQ" || e.code === "KeyA") {
+        writeStatus(leftdrive, "1");
+        leftdrive.value = "1";
+      }
+      if(e.code === "KeyE" || e.code === "KeyD") {
+        writeStatus(rightdrive, "1");
+        rightdrive.value = "1";
+      }
+    });
+    window.setInterval(sendingDataToServer, sendingInterval);
+    function sendingDataToServer() {
+      if(!driveStatusChanged) return;
+      
+      console.log(driveStatus);
+      ws.send(JSON.stringify(driveStatus));
+      driveStatusChanged = false;
+    };
+    function writeStatus (drive, value) {
+        driveStatus = {...driveStatus, [drive.id]: value};
+        driveStatusChanged = true;
+    };
+
+    const ws = new WebSocket(`ws://${window.location.host}`);
+    ws.onopen = () => {
+        serverStatus.innerText = " В мережі (очікування кадрів)";
+        wsOnline = true;
+    }
+    ws.onmessage = (e) => {
+        serverStatus.innerText = "Підключено до сервера";
+        const blob = new Blob([e.data], {type: 'image/jpeg'});
+        const url = URL.createObjectURL(blob);
+        const oldUrl = img.src;
+        img.src = url;
+        if(oldUrl.startsWith('blob:')) URL.revokeObjectURL(oldUrl);
+        vehicleStatus.innerText = "Tank online";
+        wsOnline = true;
+    };
+    ws.onclose = () => {
+        serverStatus.innerText = "Відключено";
+        wsOnline = false;
+        clearInterval(interval);
+    }
+    interval = setInterval(() => {
+      if (!wsOnline) {
+        console.log("tank offline");
+        vehicleStatus.innerText = "Tank offline";
+      } 
+      wsOnline = false;
+    }, 3000);
+    
+  </script>
+
+<html>
