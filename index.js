@@ -35,7 +35,7 @@ const server = http.createServer((req, res) => {
     else {
         fs.readFile(path.join(__dirname, req.url), (err, data) => {
             const ext = path.extname(req.url);
-            res.writeHead(200, {'Content-Type': mimeTypes[ext]});
+            res.writeHead(200, {'Content-Type': mimeTypes[ext] || 'application/octet-stream'});
             res.end(data);
         });
     }
