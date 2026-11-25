@@ -20,15 +20,15 @@
   </head>
   <body>
       <div style="resize: none;">
-        <div class="main" style="z-index: 1;">
+        <div class="main" style="z-index: 1; position: relative">
           <div style="display: flex; flex-direction: row; justify-content: space-between; height: 100vh">
             <div style="display: flex; justify-content: center; align-items: center; width: 15%;">
               <div>
                 <input id="left" type="range" min="0" max="2" value="1" step="1" style=" transform: rotate(-90deg); width: 200px;"/>
               </div>
             </div>
-            <div style="margin: auto;">
-              <img id="stream" src="" alt="Очікування потоку....">
+            <div style="margin: auto;"">
+              <img id="stream" src="">
             </div>
             <div style="display: flex; justify-content: center; align-items: center;  width: 15%;">
               <div>
@@ -37,7 +37,7 @@
             </div>
           </div>
           <div id="status" style="width: 100%; text-align: center; bottom: 20px; position: absolute;">Підключення до сервера....</div>
-          <div id="vehicle"style="width: 100%; text-align: center; bottom: 5px; position: absolute;">Vehicle offline</div>
+          <div id="vehicle"style="width: 100%; text-align: center; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute;">Vehicle offline</div>
         </div>
         <div id="overlay" class="hide"> 
           <div style="display: flex; justify-content: center; align-items: center; height: 100%; color: grey; font-size: 2.5em;">
@@ -171,7 +171,7 @@
         const oldUrl = img.src;
         img.src = url;
         if(oldUrl.startsWith('blob:')) URL.revokeObjectURL(oldUrl);
-        vehicleStatus.innerText = "Tank online";
+        vehicleStatus.innerText = "Vehicles online";
         wsOnline = true;
     };
     ws.onclose = () => {
@@ -182,7 +182,7 @@
     interval = setInterval(() => {
       if (!wsOnline) {
         console.log("tank offline");
-        vehicleStatus.innerText = "Tank offline";
+        vehicleStatus.innerText = "Vehicle offline";
       } 
       wsOnline = false;
     }, 3000);
